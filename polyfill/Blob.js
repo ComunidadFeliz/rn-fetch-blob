@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
-import RNFetchBlob from '../index.js'
+import {NativeModules} from 'react-native';
 import fs from '../fs.js'
 import getUUID from '../utils/uuid'
 import Log from '../utils/log.js'
@@ -10,6 +10,7 @@ import EventTarget from './EventTarget'
 
 const log = new Log('Blob')
 const blobCacheDir = fs.dirs.DocumentDir + '/RNFetchBlob-blobs/'
+const RNFetchBlob = NativeModules.RNFetchBlob
 
 log.disable()
 // log.level(3)
@@ -291,7 +292,7 @@ export default class Blob extends EventTarget {
     if(!this._isReference) {
       return fs.unlink(this._ref).catch((err) => {
         console.warn(err)
-      })   
+      })
     }
     else {
       return Promise.resolve()
