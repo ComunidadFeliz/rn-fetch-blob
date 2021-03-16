@@ -325,11 +325,30 @@ RCT_EXPORT_METHOD(unlink:(NSString *)path callback:(RCTResponseSenderBlock) call
 {
     NSError * error = nil;
     NSString * tmpPath = nil;
-    [[NSFileManager defaultManager] removeItemAtPath:path error:&error];
-    if(error == nil || [[NSFileManager defaultManager] fileExistsAtPath:path] == NO)
+
+    BOOL isDirectory;
+    
+    BOOL fileExistsAtPath = [[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDirectory];
+
+    if (fileExistsAtPath) {
+       if (isDirectory){
+           //Path is a directory, loop through the files and delete each one.
+           NSFileManager *fileMgr = [NSFileManager defaultManager];
+           NSArray *fileArray = [fileMgr contentsOfDirectoryAtPath:path error:&error];
+           
+           for (NSString *filename in fileArray)  {
+               [fileMgr removeItemAtPath:[path stringByAppendingPathComponent:filename] error:&error];
+           }
+       } else {
+           // Path is a file, remove it
+           [[NSFileManager defaultManager] removeItemAtPath:path error:&error];
+       }
+    }
+    
+    if(error == nil || [[NSFileManager defaultManager] fileExistsAtPath:path] == NO){
         callback(@[[NSNull null]]);
-    else
-        callback(@[[NSString stringWithFormat:@"failed to unlink file or path at %@", path]]);
+    } else
+        callback(@[[NSString stringWithFormat:@"failed to unlink file or path at %@, Error: %@", path, error]]);
 }
 
 #pragma mark - fs.removeSession
