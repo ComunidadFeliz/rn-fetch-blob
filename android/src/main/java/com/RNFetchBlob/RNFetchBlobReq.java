@@ -163,42 +163,46 @@ public class RNFetchBlobReq extends BroadcastReceiver implements Runnable {
         if (options.addAndroidDownloads != null && options.addAndroidDownloads.hasKey("useDownloadManager")) {
 
             if (options.addAndroidDownloads.getBoolean("useDownloadManager")) {
-                System.out.println("JAVA URL: " + url);
-                Uri uri = Uri.parse(url);
-                DownloadManager.Request req = new DownloadManager.Request(uri);
-                if(options.addAndroidDownloads.hasKey("notification") && options.addAndroidDownloads.getBoolean("notification")) {
-                    req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                } else {
-                    req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN);
+                try {
+                    Uri uri = Uri.parse(null);
+                    DownloadManager.Request req = new DownloadManager.Request(uri);
+                    if (options.addAndroidDownloads.hasKey("notification") && options.addAndroidDownloads.getBoolean("notification")) {
+                        req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    } else {
+                        req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN);
+                    }
+                    if (options.addAndroidDownloads.hasKey("title")) {
+                        req.setTitle(options.addAndroidDownloads.getString("title"));
+                    }
+                    if (options.addAndroidDownloads.hasKey("description")) {
+                        req.setDescription(options.addAndroidDownloads.getString("description"));
+                    }
+                    if (options.addAndroidDownloads.hasKey("path")) {
+                        req.setDestinationUri(Uri.parse("file://" + options.addAndroidDownloads.getString("path")));
+                    }
+                    // #391 Add MIME type to the request
+                    if (options.addAndroidDownloads.hasKey("mime")) {
+                        req.setMimeType(options.addAndroidDownloads.getString("mime"));
+                    }
+                    // set headers
+                    ReadableMapKeySetIterator it = headers.keySetIterator();
+                    if (options.addAndroidDownloads.hasKey("mediaScannable") && options.addAndroidDownloads.hasKey("mediaScannable")) {
+                        req.allowScanningByMediaScanner();
+                    }
+                    while (it.hasNextKey()) {
+                        String key = it.nextKey();
+                        req.addRequestHeader(key, headers.getString(key));
+                    }
+                    Context appCtx = RNFetchBlob.RCTContext.getApplicationContext();
+                    DownloadManager dm = (DownloadManager) appCtx.getSystemService(Context.DOWNLOAD_SERVICE);
+                    downloadManagerId = dm.enqueue(req);
+                    androidDownloadManagerTaskTable.put(taskId, Long.valueOf(downloadManagerId));
+                    appCtx.registerReceiver(this, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+                    return;
+                } catch (Exception e){
+                    callback.invoke("\n[DownloadManager] Error fetching file from url: " + url + "\n\nException: " + e.toString(), null, null);
+                    return;
                 }
-                if(options.addAndroidDownloads.hasKey("title")) {
-                    req.setTitle(options.addAndroidDownloads.getString("title"));
-                }
-                if(options.addAndroidDownloads.hasKey("description")) {
-                    req.setDescription(options.addAndroidDownloads.getString("description"));
-                }
-                if(options.addAndroidDownloads.hasKey("path")) {
-                    req.setDestinationUri(Uri.parse("file://" + options.addAndroidDownloads.getString("path")));
-                }
-                // #391 Add MIME type to the request
-                if(options.addAndroidDownloads.hasKey("mime")) {
-                    req.setMimeType(options.addAndroidDownloads.getString("mime"));
-                }
-                // set headers
-                ReadableMapKeySetIterator it = headers.keySetIterator();
-                if(options.addAndroidDownloads.hasKey("mediaScannable") && options.addAndroidDownloads.hasKey("mediaScannable")) {
-                    req.allowScanningByMediaScanner();
-                }
-                while (it.hasNextKey()) {
-                    String key = it.nextKey();
-                    req.addRequestHeader(key, headers.getString(key));
-                }
-                Context appCtx = RNFetchBlob.RCTContext.getApplicationContext();
-                DownloadManager dm = (DownloadManager) appCtx.getSystemService(Context.DOWNLOAD_SERVICE);
-                downloadManagerId = dm.enqueue(req);
-                androidDownloadManagerTaskTable.put(taskId, Long.valueOf(downloadManagerId));
-                appCtx.registerReceiver(this, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-                return;
             }
 
         }
@@ -566,7 +570,7 @@ public class RNFetchBlobReq extends BroadcastReceiver implements Runnable {
                         // This usually mean the data is contains invalid unicode characters but still valid data,
                         // it's binary data, so send it as a normal string
                         catch(CharacterCodingException ignored) {
-                            
+
                             if(responseFormat == ResponseFormat.UTF8) {
                                 String utf8 = new String(b);
                                 callback.invoke(null, RNFetchBlobConst.RNFB_RESPONSE_UTF8, utf8);
