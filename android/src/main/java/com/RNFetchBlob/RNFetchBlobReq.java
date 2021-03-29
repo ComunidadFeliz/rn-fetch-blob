@@ -164,7 +164,7 @@ public class RNFetchBlobReq extends BroadcastReceiver implements Runnable {
 
             if (options.addAndroidDownloads.getBoolean("useDownloadManager")) {
                 try {
-                    Uri uri = Uri.parse(null);
+                    Uri uri = Uri.parse(url);
                     DownloadManager.Request req = new DownloadManager.Request(uri);
                     if (options.addAndroidDownloads.hasKey("notification") && options.addAndroidDownloads.getBoolean("notification")) {
                         req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
